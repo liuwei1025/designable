@@ -34,6 +34,7 @@ export const useCursorEffect = (engine: Engine) => {
       engine.cursor.setStatus(CursorStatus.Normal)
     })
   })
+  // FIXME 为啥注册两个 MouseMoveEvent
   engine.subscribeTo(MouseMoveEvent, (event) => {
     const currentWorkspace = event?.context?.workspace
     if (!currentWorkspace) return

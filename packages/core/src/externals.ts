@@ -1,5 +1,8 @@
 import { isArr } from '@designable/shared'
 import { untracked } from '@formily/reactive'
+/**
+ * 预设的行为逻辑（需要宿主环境交互）
+ */
 import { DEFAULT_DRIVERS, DEFAULT_EFFECTS, DEFAULT_SHORTCUTS } from './presets'
 import { Engine, TreeNode } from './models'
 import {

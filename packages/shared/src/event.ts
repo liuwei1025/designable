@@ -1,7 +1,9 @@
 import { isArr, isWindow } from './types'
 import { Subscribable, ISubscriber } from './subscribable'
 import { globalThisPolyfill } from './globalThisPolyfill'
-
+/**
+ * 已绑定
+ */
 const ATTACHED_SYMBOL = Symbol('ATTACHED_SYMBOL')
 const EVENTS_SYMBOL = Symbol('__EVENTS_SYMBOL__')
 const EVENTS_ONCE_SYMBOL = Symbol('EVENTS_ONCE_SYMBOL')
@@ -165,6 +167,12 @@ export class EventDriver<Engine extends Event = Event, Context = any>
     listener: EventListenerOrEventListenerObject,
     options?: boolean | EventOptions
   ): void
+  /**
+   * // FIXME: 是不是必须同一个事件还需要验证
+   * isOnlyMode 保障同一个类型的事件在一个树形结构中可以只在一个节点上生效
+   * 1、onlyChild模式就将事件下移 -> 取消事件当前对应的dom上的事件绑定 -> 重新将新的
+   * 2、onlyParent 模式下如果当前dom已经在之前事件所对应的dom之前就不再处理
+   */
   addEventListener(type: any, listener: any, options: any) {
     const target = this.eventTarget(type)
     if (isOnlyMode(options?.mode)) {
@@ -172,9 +180,12 @@ export class EventDriver<Engine extends Event = Event, Context = any>
       const constructor = this['constructor']
       constructor[EVENTS_ONCE_SYMBOL] = constructor[EVENTS_ONCE_SYMBOL] || {}
       const handler = target[EVENTS_ONCE_SYMBOL][type]
+      // 当前实例已经绑定的dom元素
       const container = constructor[EVENTS_ONCE_SYMBOL][type]
+      // 当前节点已经绑定过了同样类型的事件就不再处理
       if (!handler) {
         if (container) {
+          // 如果是只给子元素绑定handler 就移除container上绑定的此事件 同时把事件绑定到子元素上去
           if (options.mode === 'onlyChild') {
             if (container.contains(target)) {
               container.removeEventListener(
@@ -185,6 +196,7 @@ export class EventDriver<Engine extends Event = Event, Context = any>
               delete container[EVENTS_ONCE_SYMBOL][type]
             }
           } else if (options.mode === 'onlyParent') {
+            // 如果事件只需要父组件触发 且
             if (container.contains(target)) return
           }
         }
@@ -193,6 +205,7 @@ export class EventDriver<Engine extends Event = Event, Context = any>
         constructor[EVENTS_ONCE_SYMBOL][type] = target
       }
     } else {
+      // 非只能有一个类型事件的模式
       target[EVENTS_SYMBOL] = target[EVENTS_SYMBOL] || {}
       target[EVENTS_SYMBOL][type] = target[EVENTS_SYMBOL][type] || new Map()
       if (!target[EVENTS_SYMBOL][type]?.get?.(listener)) {
@@ -242,13 +255,17 @@ export class EventDriver<Engine extends Event = Event, Context = any>
   batchAddEventListener(type: any, listener: any, options?: any) {
     this.engine[DRIVER_INSTANCES_SYMBOL] =
       this.engine[DRIVER_INSTANCES_SYMBOL] || []
+    // 在引擎中增加当前的事件驱动
     if (!this.engine[DRIVER_INSTANCES_SYMBOL].includes(this)) {
       this.engine[DRIVER_INSTANCES_SYMBOL].push(this)
     }
     this.engine[DRIVER_INSTANCES_SYMBOL].forEach((driver) => {
+      // 引擎中的各个驱动对应的dom???
+      // FIXME 在哪赋值的 -> driver.container = container 引擎attachEvents初始化驱动的时候赋值的
       const target = driver.eventTarget(type)
       target[EVENTS_BATCH_SYMBOL] = target[EVENTS_BATCH_SYMBOL] || {}
       if (!target[EVENTS_BATCH_SYMBOL][type]) {
+        // 越过具体驱动 直接做事件绑定？
         target.addEventListener(type, listener, options)
         target[EVENTS_BATCH_SYMBOL][type] = listener
       }
@@ -332,10 +349,13 @@ export class Event extends Subscribable<ICustomEvent<any>> {
       return this.attachEvents(container.document, container, context)
     }
     if (container[ATTACHED_SYMBOL]) return
+    // 在dom容器上绑定驱动
     container[ATTACHED_SYMBOL] = this.drivers.map((EventDriver) => {
+      // 实例化驱动
       const driver = new EventDriver(this, context)
       driver.contentWindow = contentWindow
       driver.container = container
+      // 驱动子类自己实现与dom环境的事件注册
       driver.attach(container)
       return driver
     })
