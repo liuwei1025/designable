@@ -4,6 +4,10 @@ import { untracked } from '@formily/reactive'
  * 预设的行为逻辑（需要宿主环境交互）
  */
 import { DEFAULT_DRIVERS, DEFAULT_EFFECTS, DEFAULT_SHORTCUTS } from './presets'
+/**
+ * 引擎实现
+ * 组件节点模型
+ */
 import { Engine, TreeNode } from './models'
 import {
   IEngineProps,

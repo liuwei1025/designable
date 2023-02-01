@@ -168,7 +168,7 @@ export class EventDriver<Engine extends Event = Event, Context = any>
     options?: boolean | EventOptions
   ): void
   /**
-   * // FIXME: 是不是必须同一个事件还需要验证
+   * // TODO: 是同一个事件还是同一个类型的事件 还需要验证
    * isOnlyMode 保障同一个类型的事件在一个树形结构中可以只在一个节点上生效
    * 1、onlyChild模式就将事件下移 -> 取消事件当前对应的dom上的事件绑定 -> 重新将新的
    * 2、onlyParent 模式下如果当前dom已经在之前事件所对应的dom之前就不再处理
@@ -261,11 +261,11 @@ export class EventDriver<Engine extends Event = Event, Context = any>
     }
     this.engine[DRIVER_INSTANCES_SYMBOL].forEach((driver) => {
       // 引擎中的各个驱动对应的dom???
-      // FIXME 在哪赋值的 -> driver.container = container 引擎attachEvents初始化驱动的时候赋值的
+      // TIPS: 引擎attachEvents初始化驱动的时候赋值了container -> driver.container = container
       const target = driver.eventTarget(type)
       target[EVENTS_BATCH_SYMBOL] = target[EVENTS_BATCH_SYMBOL] || {}
       if (!target[EVENTS_BATCH_SYMBOL][type]) {
-        // 越过具体驱动 直接做事件绑定？
+        // dom真正做事件绑定的地儿
         target.addEventListener(type, listener, options)
         target[EVENTS_BATCH_SYMBOL][type] = listener
       }
